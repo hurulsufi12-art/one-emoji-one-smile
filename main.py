@@ -14,7 +14,12 @@ def main():
     # whitespace-only; and the task: exactly ONE emoji, nothing else —
     # no words, no caption, no explanation. Fail loudly instead of
     # writing an invalid entry.
-    if not 1 <= len(TEXT) <= 8 or not TEXT.strip():
+    if (
+        not 1 <= len(TEXT) <= 8
+        or not TEXT.strip()
+        or TEXT != TEXT.strip()
+        or "\n" in TEXT
+    ):
         raise SystemExit("entry text violates the 1-8 char gate")
     if len(TEXT) != 1 or unicodedata.category(TEXT) not in ("So", "Sk", "Sm", "Sc"):
         raise SystemExit("entry text is not exactly one emoji")
@@ -23,7 +28,9 @@ def main():
     # Write atomically: a crash mid-write must never leave a truncated
     # entry.txt for the grader to read. Write to a temp file in the same
     # directory, flush it to disk, then rename over the target.
-    tmp_path = os.path.join(out_dir, ".entry.txt.tmp")
+    # Temp name carries the pid so two concurrent grader runs in the same
+    # directory never overwrite each other's in-flight file.
+    tmp_path = os.path.join(out_dir, f".entry.txt.tmp.{os.getpid()}")
     final_path = os.path.join(out_dir, "entry.txt")
     with open(tmp_path, "w", encoding="utf-8") as f:
         f.write(TEXT)
